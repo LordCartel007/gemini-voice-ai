@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voice AI with Gemini</title>
+    <style>
+      body {
+        text-align: center;
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      button {
+        font-size: 18px;
+        padding: 10px 20px;
+        margin: 20px;
+        cursor: pointer;
+      }
+      p {
+        font-size: 20px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Voice AI with Google Gemini</h1>
+    <button onclick="startListening()">🎤 Press & Speak</button>
+    <button onclick="stopSpeaking()">🛑 Stop Speaking</button>
+    <p id="output">Waiting for input...</p>
+
+    <script>
+      // Function to get available voices
+
+      const API_KEY = "AIzaSyDv92d7AZgqgMMdutLtx9FL2tiBFhbfJ-E"; // Replace with your Google gemini API Key
+      const recognition = new (window.SpeechRecognition ||
+        window.webkitSpeechRecognition)();
+      recognition.lang = "en-US"; // Set language for speech recognition
+
+      // Start listening for voice input
+      function startListening() {
+        document.getElementById("output").textContent = "Listening...";
+        recognition.start(); // Start speech recognition
+      }
+
+      // Event listener when recognition results are available
+      recognition.onresult = async (event) => {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById("output").textContent = "You: " + transcript;
+        console.log("User said:", transcript); // Log the spoken text
+
+        try {
+          const aiResponse = await askGemini(transcript); // Get response from Gemini AI
+          speak(aiResponse); // Convert AI response to speech
+        } catch (error) {
+          console.error("Error with Gemini API request:", error);
+          speak("Sorry, there was an issue processing your request.");
+        }
+      };
+
+      // Error handling for speech recognition
+      recognition.onerror = function (event) {
+        console.error("Speech recognition error:", event.error);
+        document.getElementById("output").textContent =
+          "Error occurred: " + event.error;
+      };
+
+      // Function to interact with Gemini AI API
+      async function askGemini(text) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`;
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text }] }],
+          }),
+        });
+
+        const data = await response.json();
+        const aiReply =
+          data.candidates?.[0]?.content?.parts?.[0]?.text ||
+          "Sorry, I couldn't understand.";
+        document.getElementById("output").textContent = "AI: " + aiReply;
+        console.log("AI Response:", aiReply);
+        return aiReply;
+      }
+
+      //   Function to speak out the text using SpeechSynthesisUtterance
+      function speak(text) {
+        // Replace any asterisks (*) with an empty string, effectively ignoring them
+        const cleanedText = text.replace(/\*/g, ""); // Removes all asterisks
+
+        const speech = new SpeechSynthesisUtterance(cleanedText);
+        speech.rate = 1;
+        speech.pitch = 1;
+        speech.volume = 1;
+        window.speechSynthesis.speak(speech);
+      }
+
+      // Function to stop any ongoing speech synthesis
+      function stopSpeaking() {
+        window.speechSynthesis.cancel(); // Cancel ongoing speech
+        document.getElementById("output").textContent = "Speech stopped.";
+      }
+    </script>
+  </body>
+</html>
