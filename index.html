@@ -64,15 +64,22 @@
           "Error occurred: " + event.error;
       };
 
-      // Function to interact with Gemini AI API
-      async function askGemini(text) {
+      let conversationHistory = []; // Stores chat history
+
+      async function askGemini(userInput) {
+        // Add user message to history
+        conversationHistory.push({
+          role: "user",
+          parts: [{ text: userInput }],
+        });
+
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`;
 
         const response = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [{ parts: [{ text }] }],
+            contents: conversationHistory, // Send the entire conversation
           }),
         });
 
@@ -80,8 +87,13 @@
         const aiReply =
           data.candidates?.[0]?.content?.parts?.[0]?.text ||
           "Sorry, I couldn't understand.";
+
+        // Add AI response to history
+        conversationHistory.push({ role: "model", parts: [{ text: aiReply }] });
+
         document.getElementById("output").textContent = "AI: " + aiReply;
         console.log("AI Response:", aiReply);
+
         return aiReply;
       }
 
