@@ -73,28 +73,38 @@
           parts: [{ text: userInput }],
         });
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: conversationHistory, // Send the entire conversation
+            }),
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          const data = await response.json();
+          console.log("Full API Response:", data); // Log full response to debug
+          const aiReply =
+            data.candidates?.[0]?.content?.parts?.[0]?.text ||
+            "Sorry, I couldn't understand.";
 
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: conversationHistory, // Send the entire conversation
-          }),
-        });
+          // Add AI response to history
+          conversationHistory.push({
+            role: "model",
+            parts: [{ text: aiReply }],
+          });
 
-        const data = await response.json();
-        const aiReply =
-          data.candidates?.[0]?.content?.parts?.[0]?.text ||
-          "Sorry, I couldn't understand.";
+          document.getElementById("output").textContent = "AI: " + aiReply;
+          console.log("AI Response:", aiReply);
 
-        // Add AI response to history
-        conversationHistory.push({ role: "model", parts: [{ text: aiReply }] });
-
-        document.getElementById("output").textContent = "AI: " + aiReply;
-        console.log("AI Response:", aiReply);
-
-        return aiReply;
+          return aiReply;
+        } catch (error) {
+          console.error("Error with Gemini API request:", error);
+          return "Sorry, there was an issue processing your request.";
+        }
       }
 
       //   Function to speak out the text using SpeechSynthesisUtterance
